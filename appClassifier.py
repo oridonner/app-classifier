@@ -1,10 +1,8 @@
 #!/usr/bin/env python2.7
 import os
-import csv
 
 from python.english_classifier_lib import english_classifier as eng_clsf
 from python.segment_classifier_lib import segment_classifier as seg_clsf
-from python.class_lib import shape
 from python.class_lib import mobileApps
 
 def map_column(column_name,row):
@@ -13,12 +11,15 @@ def map_column(column_name,row):
             return idx
 
 def main():
-    source_data_file = '/home/orid/Documents/projects/appClassifier/data/input/Examples.csv'
-    target_data_file = '/home/orid/Documents/projects/appClassifier/data/input/Classify.csv'
+    source_data_file = 'data/input/Examples.csv'
+    target_data_file = 'data/input/Classify.csv'
+    output_data_path = 'data/output'
 
     source_data_dict = mobileApps.import_source_data(source_data_file)
     target_data_dict = mobileApps.import_target_data(target_data_file)
 
+    sf = eng_clsf.create_model(source_data_dict)
+    print sf.select_columns(['appName','description','is_english'])
         
 if __name__ == "__main__":
     main()
