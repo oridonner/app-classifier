@@ -44,7 +44,6 @@ def is_latin(char_count_dict):
 def build_latin_apps_cluster(sf):
     cids = sf['cluster_id'].unique()
     cluster_list=[]
-    last_num_apps_latin=0
     for cid in cids:
         cluster_dict={}
         num_apps_latin = len(sf[(sf['cluster_id'] == cid) & (sf['is_latin'])])
@@ -66,18 +65,23 @@ def is_supported(row):
         result = False
     return result
 
+def iterate_kmean_model(sf):
+    while True:
+        kmean=gl.kmeans.create(sf, num_clusters=5,features=['tail_tf_idf'] ,max_iterations=15)
+        if kmean.training_iterations > 6:
+            return kmean 
+
 
 # Create kmeans clustering model for detecting supported mobile apps
-def create_model(data_dict):
-    sf = import_data(data_dict)
+def create_english_classifier(source_data_dict):
+    sf = import_data(source_data_dict)
     # Create required columns for calculating tail_tf_idf feature
     sf['short_desc'] = sf.apply(short_desc)
     sf['short_word_count']=gl.text_analytics.count_words(sf['short_desc'],to_lower=True)
     sf['short_tf_idf'] = gl.text_analytics.tf_idf(sf['short_word_count'])
     sf['tail_tf_idf'] = sf.apply(sort_dict)
     # Create kmeans clustering model to predict cluster_id (we still don't know which cluster id refers to english)
-    kmean=gl.kmeans.create(sf, num_clusters=4,features=['tail_tf_idf'] ,max_iterations=25)
-    #kmean=gl.kmeans.create(sf, num_clusters=4,features=['tail_tf_idf'],max_iterations=25)
+    kmean = iterate_kmean_model(sf)
     sf['cluster_id']=kmean.predict(sf)
     # Create required columns for calculating is_supported column
     sf['char_count'] = gl.text_analytics.count_ngrams(sf['short_desc'],n=1,to_lower=True,method="character")
@@ -85,6 +89,11 @@ def create_model(data_dict):
     latin_apps_cluster = build_latin_apps_cluster(sf)
     print latin_apps_cluster
     english_cluster_id = predict_english_cluster_id(latin_apps_cluster) 
-    sf['is_english'] = sf.apply(lambda x: True if x['cluster_id'] == english_cluster_id else False)
+    sf['is_english'] = sf.apply(lambda x: True if x['cluster_id'] == english_cluster_id else False) 
+    # Create classification model for english language detection from cluster model 
+    train_data,test_data=sf.random_split(.8,seed=0)
+    english_classifier = gl.classifier.create(train_data,target='is_english',features=['tail_tf_idf'],validation_set=test_data)
+    return english_classifier
 
-    return sf
+def create_segment_classifier(source_data_dict):
+    return segment_classifier

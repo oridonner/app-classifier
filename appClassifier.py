@@ -18,8 +18,12 @@ def main():
     source_data_dict = mobileApps.import_source_data(source_data_file)
     target_data_dict = mobileApps.import_target_data(target_data_file)
 
-    sf = eng_clsf.create_model(source_data_dict)
+    sf = eng_clsf.init(source_data_dict)
+    
+    
     print sf.select_columns(['appName','description','is_english'])
-        
+    
+
+
 if __name__ == "__main__":
     main()
